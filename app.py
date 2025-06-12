@@ -25,7 +25,7 @@ def init_db():
               type TEXT,
               category TEXT,
               amount REAL,
-              description TEXT,
+              description TEXT NOT NULL,
               FOREIGN KEY(user_id) REFERENCES users(id)
               )
               ''')
@@ -97,6 +97,9 @@ def add():
           category=request.form['category']
           amount=request.form['amount']
           description=request.form['description']
+          if not description.strip():
+               error='Description cannot be empty'
+               return render_template('add.html', error=error, date=date,type=ttype, category=category, amount=amount, description=description)
 
           conn=sqlite3.connect('MyBalance.db')
           c=conn.cursor()
