@@ -110,6 +110,8 @@ def add():
           return redirect(url_for('dashboard'))
      return render_template('add.html')
 
+
+
 @app.route('/delete/<int:id>', methods=['POST'])
 def delete(id):
     if 'user_id' not in session:
@@ -122,7 +124,9 @@ def delete(id):
     conn.close()
     return redirect(url_for('dashboard'))
    
-
+@app.route('/confirm_delete/<int:id>')
+def confirm_delete(id):
+     return render_template('confirm_delete.html', id=id)
 
 
 

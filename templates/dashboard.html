@@ -24,7 +24,7 @@
             <td>{{ t[4] }}</td>
             <td>{{ t[5] }}</td>
             <td>
-                <form action="{{ url_for('delete',id=t[0])}}" method="post">
+                <form action="{{ url_for('confirm_delete',id=t[0])}}" method="get">
                     <button type="submit">Delete</button>
                 </form>
 
