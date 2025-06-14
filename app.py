@@ -5,11 +5,16 @@ from datetime import datetime
 
 app=Flask(__name__)
 app.secret_key='a74c82b6c13d4218ac43e32e8d1d9f67'
-
+DATABASE='MyBalance.db'
 
 #DataBase Setup
+
+def get_db_conn():
+     conn=sqlite3.connect(DATABASE)
+     conn.row_factory=sqlite3.Row
+     return conn
 def init_db():
-    conn=sqlite3.connect('MyBalance.db')
+    conn=get_db_conn()
     c=conn.cursor()
     c.execute(''' CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,10 +50,10 @@ def home():
 def register():
         if request.method=='POST':
             username=request.form['username']
-            email=request.form['username']
+            email=request.form['email']
             password=generate_password_hash(request.form['password'])
 
-            conn=sqlite3.connect('MyBalance.db')
+            conn=get_db_conn()
             c=conn.cursor()
             c.execute('INSERT INTO users (username, email, password) VALUES(?,?,?)',(username, email, password))
             conn.commit()
@@ -62,7 +67,7 @@ def login():
             username=request.form['username']
             password=request.form['password']
 
-            conn=sqlite3.connect('MyBalance.db')
+            conn=get_db_conn()
             c=conn.cursor()
             c.execute('SELECT id, password FROM users WHERE username=?',(username,))
             user=c.fetchone()
@@ -79,7 +84,7 @@ def login():
 def dashboard():
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        conn=sqlite3.connect('MyBalance.db')
+        conn=get_db_conn()
         c=conn.cursor()
         c.execute('SELECT id, date, type, category, amount, description FROM transactions WHERE user_id=? ORDER BY date DESC',(session['user_id'],) )
         transactions=c.fetchall()
@@ -101,7 +106,7 @@ def add():
                error='Description cannot be empty'
                return render_template('add.html', error=error, date=date,type=ttype, category=category, amount=amount, description=description)
 
-          conn=sqlite3.connect('MyBalance.db')
+          conn=get_db_conn()
           c=conn.cursor()
           c.execute('''INSERT INTO transactions (user_id, date, type, category, amount, description) VALUES (?,?,?,?,?,?)''',
                     (session ['user_id'], date, ttype, category, amount, description))
@@ -117,7 +122,7 @@ def delete(id):
     if 'user_id' not in session:
           return redirect(url_for('login'))
 
-    conn=sqlite3.connect('MyBalance.db')
+    conn=get_db_conn()
     c=conn.cursor()
     c.execute('DELETE FROM transactions WHERE id=? AND user_id=?', (id,session['user_id']))              
     conn.commit()
@@ -129,6 +134,36 @@ def confirm_delete(id):
      return render_template('confirm_delete.html', id=id)
 
 
+@app.route('/amend/<int:id>', methods=['GET'])
+def amend(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+     
+    conn=get_db_conn()
+    
+    line=conn.execute('SELECT * FROM transactions WHERE id=? AND user_id=?', (id, session['user_id'])).fetchone()
+    if line is None:
+         return "Access denied", 403
+    conn.close()
+    return render_template('edit.html', line=line)
+
+@app.route('/amend/<int:id>', methods=['POST'])
+def update(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    new_date=request.form['date']
+    new_ttype=request.form['type']
+    new_category=request.form['category']
+    new_amount=request.form['amount']
+    new_description=request.form['description']
+
+    conn=get_db_conn()
+    conn.execute('UPDATE transactions SET user_id=?, date=?, type=?, category=?, amount=?, description=? WHERE id=?', (session['user_id'],new_date,new_ttype,new_category,new_amount,new_description, id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('dashboard'))
+     
+     
 
 
 

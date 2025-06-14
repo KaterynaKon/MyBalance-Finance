@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Add Transaction{% endblock %}
+{% block content %}
+<h2>Edit Transaction</h2>
+<form action="{{url_for('update', id=line['id'])}}"   method="post">
+    <div class="mb-3">
+        <label>Date</label>
+        <input type="date" name="date" class="form-control" required value="{{line['date']}}">
+    </div>
+    <div class="mb-3">
+        <label>Type</label>
+        <select name="type" class="form-control" required>
+            <option value="Income"{% if line['type'] =='Income' %} selected {% endif %}>Income</option>
+            <option value="Expense" {%  if line['type']=='Expense' %} selected {% endif %}>Expense</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label>Category</label> 
+        <input type="text" name="category" class="form-control" required value="{{line['category']}}">
+    </div>
+    <div class="mb-3">
+        <label>Amount</label>
+        <input type="number" step="0.01" name="amount" class="form-control" required value ="{{ line['amount']}}">
+    </div>
+    <div class="mb-3">
+        <label>Description</label>
+        <textarea name="description" class="form-control">{{ line['description']}}</textarea>
+        {% if error %}
+        <p style="color:red">{{error}}</p>
+        {% endif %}
+    </div>
+    <button type="submit" class="btn btn-primary">Update</button>
+</form>
+{% endblock %}
