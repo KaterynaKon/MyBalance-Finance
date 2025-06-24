@@ -93,12 +93,20 @@ def dashboard():
 
 @app.route('/add', methods=['GET','POST'])
 def add():
-     if 'user_id' not in session:
+    if 'user_id' not in session:
           return redirect(url_for('login'))
-     
-     if request.method=='POST':
+
+    ttype=request.args.get('type','Income') 
+    income_categories=['Salary','Freelance','Business','Rental income','Dividends',
+                 'Interest','Gifts','Pension','Scholarship','Government benefits',
+                   'Investment income', 'Tax refund', 'Lottery or prize','Other']
+    expense_categories=['Food','Transport','Utilities','Rent','Healthcare','Education',
+                        'Entertainment','Clothing','Travel','Insurance', 'Debt payments', 'Other']
+   
+    categories=income_categories if ttype=='Income' else expense_categories
+    if request.method=='POST':
           date=request.form['date']
-          ttype=request.form['type']
+          
           category=request.form['category']
           amount=request.form['amount']
           description=request.form['description']
@@ -113,7 +121,7 @@ def add():
           conn.commit()
           conn.close()
           return redirect(url_for('dashboard'))
-     return render_template('add.html')
+    return render_template('add.html', type=ttype, categories=categories)
 
 
 

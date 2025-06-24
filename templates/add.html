@@ -2,21 +2,35 @@
 {% block title %}Add Transaction{% endblock %}
 {% block content %}
 <h2>Add Transaction</h2>
-<form method="post">
-    <div class="mb-3">
-        <label>Date</label>
-        <input type="date" name="date" class="form-control" required value="{{date or ''}}">
-    </div>
+
+<form method="get">
     <div class="mb-3">
         <label>Type</label>
-        <select name="type" class="form-control" required>
+        <select name="type" class="form-control" onchange="this.form.submit()">
             <option value="Income"{% if type=='Income'%} selected {% endif %}>Income</option>
             <option value="Expense" {% if type=='Expense'%} selected {% endif %}>Expense</option>
         </select>
     </div>
+
+</form>
+
+
+
+<form method="post">
+    <div class="mb-3">
+        <label>Date</label>
+        <input type="date" name="date" class="form-control" required value="{{date or ''}}" min="2024-01-01" max="2026-01-01">
+    </div>
+    
+    <input type="hidden" name="type" value="{{ type or 'Income' }}">
     <div class="mb-3">
         <label>Category</label>
-        <input type="text" name="category" class="form-control" required value="{{category or ''}}">
+        <select name="category" class="form-control" required >
+            {% for cat in categories %}
+                <option value="{{ cat }}" {% if category== cat %} selected {% endif %}>{{cat}}</option>
+            {% endfor %}
+
+        </select>
     </div>
     <div class="mb-3">
         <label>Amount</label>
