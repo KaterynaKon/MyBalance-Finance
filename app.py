@@ -2,10 +2,16 @@ from flask import Flask, render_template, redirect, url_for, request, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
 
 app=Flask(__name__)
 app.secret_key='a74c82b6c13d4218ac43e32e8d1d9f67'
 DATABASE='MyBalance.db'
+UPLOAD_FOLDER='static/uploads'
+ALLOWED_EXTENSIONS={'png','jpg','jpeg','pdf','gif'}
+app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH']=2*1024*1024
 
 #DataBase Setup
 
@@ -31,12 +37,15 @@ def init_db():
               category TEXT,
               amount REAL,
               description TEXT NOT NULL,
+              attachment TEXT,
               FOREIGN KEY(user_id) REFERENCES users(id)
               )
               ''')
     conn.commit()
     conn.close()
 
+def allowed_file(filename):
+     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 init_db()
 
     #--Routes--
@@ -97,7 +106,7 @@ def dashboard():
         date_to=request.args.get('to')
 
         query='''
-            SELECT id, date, type, category, amount, description
+            SELECT id, date, type, category, amount, description, attachment 
             FROM transactions
             WHERE user_id=?
         '''
@@ -136,18 +145,22 @@ def add():
     categories=income_categories if ttype=='Income' else expense_categories
     if request.method=='POST':
           date=request.form['date']
-          
           category=request.form['category']
           amount=request.form['amount']
           description=request.form['description']
+          attachment_file=request.files.get('attachment')
+          filename=None
+          if attachment_file and allowed_file(attachment_file.filename):
+               filename=secure_filename(attachment_file.filename)
+               attachment_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
           if not description.strip():
                error='Description cannot be empty'
                return render_template('add.html', error=error, date=date,type=ttype, category=category, amount=amount, description=description, categories=categories)
 
           conn=get_db_conn()
           c=conn.cursor()
-          c.execute('''INSERT INTO transactions (user_id, date, type, category, amount, description) VALUES (?,?,?,?,?,?)''',
-                    (session ['user_id'], date, ttype, category, amount, description))
+          c.execute('''INSERT INTO transactions (user_id, date, type, category, amount, description, attachment) VALUES (?,?,?,?,?,?,?)''',
+                    (session ['user_id'], date, ttype, category, amount, description, filename))
           conn.commit()
           conn.close()
           return redirect(url_for('dashboard'))
