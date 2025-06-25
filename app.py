@@ -88,23 +88,37 @@ def dashboard():
         sort_by=request.args.get('sort_by','date')
         order=request.args.get('order','desc')
 
-        if sort_by not in ['date','type','amount']:
+        if sort_by not in ['date','type','amount', 'category']:
              sort_by='date'
         if order not in ['asc', 'desc']:
              order='desc'
 
-        conn=get_db_conn()
-        c=conn.cursor()
-        query= f'''
+        date_from=request.args.get('from')
+        date_to=request.args.get('to')
+
+        query='''
             SELECT id, date, type, category, amount, description
             FROM transactions
             WHERE user_id=?
-            ORDER BY {sort_by} {order}
         '''
-        c.execute(query,(session['user_id'],) )
+        params=[session['user_id']]
+
+        if date_from:
+             query+=" AND date>=?"
+             params.append(date_from)
+        if date_to:
+             query+=" AND date<=?"
+             params.append(date_to)
+        query+= f"ORDER BY {sort_by} {order}"
+             
+
+        conn=get_db_conn()
+        c=conn.cursor()
+       
+        c.execute(query, tuple(params))
         transactions=c.fetchall()
         conn.close()
-        return render_template('dashboard.html', transactions=transactions, sort_by=sort_by, order=order)
+        return render_template('dashboard.html', transactions=transactions, sort_by=sort_by, order=order, date_from=date_from, date_to=date_to)
 
 
 @app.route('/add', methods=['GET','POST'])

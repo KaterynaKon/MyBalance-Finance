@@ -3,13 +3,33 @@
 {% block content %}
 <h2>Dashboard</h2>
 <a href="{{ url_for('add') }}" class="btn btn-success mb-3">Add Transaction</a>
+<form method="get" class="d-flex align-items-end gap-2 mb-3" style="flex-wrap: wrap; max-width: 600px;">
+    <div class="col-auto">
+        <label for="from" class="form-label mb-1">From:</label>
+        <input type="date" name="from" id="from" class="form-control form-control-sm" value="{{ date_from or ''}}"> 
+    </div>
+
+    <div class="col-auto">
+        <label for="to" class="form-label mb-1">To:</label>
+        <input type="date" name="to" id="to" class="form-control form-control-sm" value="{{ date_to or ''}}">
+    </div>
+
+    <div class="col-auto">
+        <input type="hidden" name="sort_by" value="{{ sort_by}}">
+        <input type="hidden" name="order" value="{{ order }}">
+        <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+    </div>
+</form>
+
+
+
 <table class="table table-striped">
     <thead>
         <tr>
             <th><a href="{{ url_for('dashboard',sort_by='date', order='asc' if sort_by!='date' or order=='desc' else 'desc' ) }}">Date</a></th>
             <th><a href="{{ url_for('dashboard', sort_by='type', order='asc' if sort_by!='type' or order=='desc' else 'desc')}}">Type</a></th>
             <th><a href="{{ url_for ('dashboard', sort_by='category', order='asc' if sort_by!='category' or order=='desc' else 'desc')}}">Category</a></th>
-            <th><a href ="{{ url_for('dashboard', sort_by='amoumt', order='asc' if sort_by!='amount' or order=='desc' else 'desc')}}">Amount</a></th>
+            <th><a href ="{{ url_for('dashboard', sort_by='amount', order='asc' if sort_by!='amount' or order=='desc' else 'desc')}}">Amount</a></th>
             <th>Description</th>
             <th>Action</th>
         </tr>
