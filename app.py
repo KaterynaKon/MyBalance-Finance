@@ -84,19 +84,35 @@ def login():
 def dashboard():
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        
+        sort_by=request.args.get('sort_by','date')
+        order=request.args.get('order','desc')
+
+        if sort_by not in ['date','type','amount']:
+             sort_by='date'
+        if order not in ['asc', 'desc']:
+             order='desc'
+
         conn=get_db_conn()
         c=conn.cursor()
-        c.execute('SELECT id, date, type, category, amount, description FROM transactions WHERE user_id=? ORDER BY date DESC',(session['user_id'],) )
+        query= f'''
+            SELECT id, date, type, category, amount, description
+            FROM transactions
+            WHERE user_id=?
+            ORDER BY {sort_by} {order}
+        '''
+        c.execute(query,(session['user_id'],) )
         transactions=c.fetchall()
         conn.close()
-        return render_template('dashboard.html', transactions=transactions)
+        return render_template('dashboard.html', transactions=transactions, sort_by=sort_by, order=order)
+
 
 @app.route('/add', methods=['GET','POST'])
 def add():
     if 'user_id' not in session:
           return redirect(url_for('login'))
 
-    ttype=request.args.get('type','Income') 
+    ttype=request.values.get('type','Income') 
     income_categories=['Salary','Freelance','Business','Rental income','Dividends',
                  'Interest','Gifts','Pension','Scholarship','Government benefits',
                    'Investment income', 'Tax refund', 'Lottery or prize','Other']
@@ -112,7 +128,7 @@ def add():
           description=request.form['description']
           if not description.strip():
                error='Description cannot be empty'
-               return render_template('add.html', error=error, date=date,type=ttype, category=category, amount=amount, description=description)
+               return render_template('add.html', error=error, date=date,type=ttype, category=category, amount=amount, description=description, categories=categories)
 
           conn=get_db_conn()
           c=conn.cursor()
