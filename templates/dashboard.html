@@ -52,8 +52,8 @@
                 {% endif %}
                </td>
             <td >
-                <a href="{{url_for('amend', id=t['id'])}}" class="btn btn-sm btn-warning">Edit</a>
-                <a href="{{ url_for('confirm_delete', id=t['id'])}}" class="btn btn-sm btn-danger">Delete</a>
+                <a href="{{url_for('update', id=t['id'])}}" class="btn btn-sm btn-warning">Edit</a>
+                <a href="{{ url_for('confirm_delete', id=t['id'], target='record')}}" class="btn btn-sm btn-danger">Delete</a>
 
 
             </td>

@@ -175,45 +175,81 @@ def delete(id):
 
     conn=get_db_conn()
     c=conn.cursor()
-    c.execute('DELETE FROM transactions WHERE id=? AND user_id=?', (id,session['user_id']))              
+    transaction=c.execute('SELECT attachment FROM transactions WHERE id=? AND user_id=?', (id,session['user_id'])).fetchone()
+    if transaction and transaction['attachment']:
+         file_path=os.path.join(app.config['UPLOAD_FOLDER'], transaction['attachment']) 
+         if os.path.exists(file_path):
+              os.remove(file_path)  
+    c.execute('DELETE FROM transactions WHERE id=? AND user_id=?', (id,session['user_id']))        
     conn.commit()
     conn.close()
     return redirect(url_for('dashboard'))
    
 @app.route('/confirm_delete/<int:id>')
 def confirm_delete(id):
-     return render_template('confirm_delete.html', id=id)
+    target=request.args.get('target','record')
+    if target=='attachment':
+          form_action=url_for('delete_attachment',id=id)
+    else:
+         form_action=url_for('delete',id=id)
+    return render_template('confirm_delete.html', id=id, target=target,form_action=form_action)
 
-
-@app.route('/amend/<int:id>', methods=['GET'])
-def amend(id):
+@app.route('/delete_attachment/<int:id>', methods=['POST'])
+def delete_attachment(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-     
-    conn=get_db_conn()
-    
-    line=conn.execute('SELECT * FROM transactions WHERE id=? AND user_id=?', (id, session['user_id'])).fetchone()
-    if line is None:
-         return "Access denied", 403
-    conn.close()
-    return render_template('edit.html', line=line)
 
-@app.route('/amend/<int:id>', methods=['POST'])
+    conn = get_db_conn()
+    c = conn.cursor()
+    transaction = c.execute('SELECT attachment FROM transactions WHERE id=? AND user_id=?', (id, session['user_id'])).fetchone()
+    if transaction and transaction['attachment']:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], transaction['attachment'])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    
+    c.execute('UPDATE transactions SET attachment=NULL WHERE id=? AND user_id=?', (id, session['user_id']))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('update', id=id))
+
+
+
+@app.route('/amend/<int:id>', methods=['GET','POST'])
 def update(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    new_date=request.form['date']
-    new_ttype=request.form['type']
-    new_category=request.form['category']
-    new_amount=request.form['amount']
-    new_description=request.form['description']
-
     conn=get_db_conn()
-    conn.execute('UPDATE transactions SET user_id=?, date=?, type=?, category=?, amount=?, description=? WHERE id=?', (session['user_id'],new_date,new_ttype,new_category,new_amount,new_description, id))
-    conn.commit()
+    c=conn.cursor()
+
+    transaction=c.execute('SELECT * FROM transactions WHERE id=? AND user_id=?',(id, session['user_id'])).fetchone()
+    if request.method=='POST':
+        new_date=request.form['date']
+        new_ttype=request.form['type']
+        new_category=request.form['category']
+        new_amount=request.form['amount']
+        new_description=request.form['description']
+        new_attachment_file=request.files.get('attachment')
+        filename=transaction['attachment']
+        if new_attachment_file and allowed_file(new_attachment_file.filename):
+            filename=secure_filename(new_attachment_file.filename)
+            new_attachment_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        if not new_description.strip():
+            error='Description cannot be empty'
+            income_categories=[...]  
+            expense_categories=[...] 
+            categories=income_categories if new_ttype=='Income' else expense_categories     
+            return render_template('edit.html', error=error, date=new_date,type=new_ttype, category=new_category, amount=new_amount, description=new_description, categories=categories)
+
+      
+        c.execute('''
+                  UPDATE transactions SET 
+                  date=?, type=?, category=?, amount=?, 
+                  description=?, attachment=? WHERE id=? AND user_id=?''',(new_date,new_ttype,new_category,new_amount,new_description,filename,id, session['user_id']))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('dashboard'))
     conn.close()
-    return redirect(url_for('dashboard'))
-     
+    return render_template('edit.html', transaction=transaction)    
      
 
 
