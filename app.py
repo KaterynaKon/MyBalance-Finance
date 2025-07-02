@@ -126,8 +126,18 @@ def dashboard():
        
         c.execute(query, tuple(params))
         transactions=c.fetchall()
+
+        c.execute('''
+                    SELECT COALESCE(SUM(CASE WHEN type='Income' THEN amount ELSE 0 END),0)-
+                    COALESCE(SUM(CASE WHEN type='Expense' THEN amount ELSE 0 END),0)
+                    FROM transactions
+                    WHERE user_id=?
+                  
+                  ''',(session['user_id'],))
+        balance=c.fetchone()[0] or 0
         conn.close()
-        return render_template('dashboard.html', transactions=transactions, sort_by=sort_by, order=order, date_from=date_from, date_to=date_to)
+        return render_template('dashboard.html', transactions=transactions, sort_by=sort_by, order=order, date_from=date_from, 
+                               date_to=date_to, balance=balance)
 
 
 @app.route('/add', methods=['GET','POST'])
