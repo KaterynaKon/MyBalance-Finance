@@ -4,12 +4,25 @@
 <h2>Dashboard</h2>
 
 <div class="alert {% if balance>=0 %} alert-success {% else %} alert-danger {% endif %}" role="alert">
-    Current balance: <strong>{{balance}}</strong> EUR
+    Current balance: <strong>{{current_balance}}</strong> EUR
 </div>
 
 
 <a href="{{ url_for('add') }}" class="btn btn-success mb-3">Add Transaction</a>
 <form method="get" class="d-flex align-items-end gap-2 mb-3" style="flex-wrap: wrap; max-width: 600px;">
+      <div class="col-auto">
+        <a href="{{ url_for('dashboard', preset='this_week')}}" class="btn btn-outline-secondary btn-sm">This Week</a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('dashboard', preset='last_7_days')}}" class="btn btn-outline-secondary btn-sm">Last 7 Days</a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('dashboard', preset='this_month')}}" class="btn btn-outline-secondary btn-sm">This Month</a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('dashboard', preset='last_30_days')}}" class="btn btn-outline-secondary btn-sm">Last 30 Days</a>
+    </div>
+    <div class="w-100"></div>
     <div class="col-auto">
         <label for="from" class="form-label mb-1">From:</label>
         <input type="date" name="from" id="from" class="form-control form-control-sm" value="{{ date_from or ''}}"> 
@@ -73,4 +86,73 @@
         {% endfor %}
     </tbody>
 </table>
+
+<div class="container mb-4">
+  <div class="row g-3">
+
+    {% if date_from or date_to %}
+      <!-- Income for period -->
+      <div class="col-md-4">
+        <div class="card border-success shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success">Income for period</h5>
+            <p class="card-text display-6 text-success ">€{{ "{:,.2f}".format(total_income) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expenses for period -->
+      <div class="col-md-4">
+        <div class="card border-danger shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title text-danger">Expenses for period</h5>
+            <p class="card-text display-6 text-danger ">€{{ "{:,.2f}".format(total_expenses) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Balance for period -->
+      <div class="col-md-4">
+        <div class="card border-primary shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title text-primary">Balance for period</h5>
+            <p class="card-text display-6 text-primary">€{{ "{:,.2f}".format(balance) }}</p>
+          </div>
+        </div>
+      </div>
+
+    {% else %}
+      <!-- Total Income -->
+      <div class="col-md-4">
+        <div class="card border-success shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title text-success">Total Income</h5>
+             <p class="card-text display-6 text-success ">€{{ "{:,.2f}".format(total_income) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Expenses -->
+      <div class="col-md-4">
+        <div class="card border-danger shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title text-danger">Total Expenses</h5>
+            <p class="card-text display-6 text-danger ">€{{ "{:,.2f}".format(total_expenses) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Balance -->
+      <div class="col-md-4">
+        <div class="card border-primary shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title text-primary">Total Balance</h5>
+           <p class="card-text display-6 text-primary">€{{ "{:,.2f}".format(balance) }}</p>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
 {% endblock %}

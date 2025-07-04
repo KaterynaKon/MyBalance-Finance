@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
+from datetime import date, timedelta
 
 app=Flask(__name__)
 app.secret_key='a74c82b6c13d4218ac43e32e8d1d9f67'
@@ -105,6 +106,26 @@ def dashboard():
         date_from=request.args.get('from')
         date_to=request.args.get('to')
 
+        preset=request.args.get('preset')
+        today=date.today()
+        if preset=='this_week':
+             
+             start_of_week=today-timedelta(days=today.weekday())
+             date_from=start_of_week.isoformat()
+             date_to=today.isoformat()
+        
+        elif preset=='last_7_days':
+             date_from=(today-timedelta(days=6)).isoformat()
+             date_to=today.isoformat()
+        
+        elif preset=='this_month':
+             date_from=(today.replace(day=1)).isoformat()
+             date_to=today.isoformat()
+        
+        elif preset=='last_30_days':
+             date_from=(today-timedelta(days=29)).isoformat()
+             date_to=today.isoformat()
+
         query='''
             SELECT id, date, type, category, amount, description, attachment 
             FROM transactions
@@ -126,18 +147,39 @@ def dashboard():
        
         c.execute(query, tuple(params))
         transactions=c.fetchall()
-
-        c.execute('''
-                    SELECT COALESCE(SUM(CASE WHEN type='Income' THEN amount ELSE 0 END),0)-
-                    COALESCE(SUM(CASE WHEN type='Expense' THEN amount ELSE 0 END),0)
+        
+        query_current = '''SELECT 
+                        COALESCE(SUM(CASE WHEN type='Income' THEN amount ELSE 0 END),0) -
+                        COALESCE(SUM(CASE WHEN type='Expense' THEN amount ELSE 0 END),0) AS balance
+                        FROM transactions
+                        WHERE user_id=?'''
+        c.execute(query_current, (session['user_id'],))
+        current_balance = c.fetchone()['balance']
+        query_totals='''
+                    SELECT 
+                    COALESCE(SUM(CASE WHEN type='Income' THEN amount ELSE 0 END),0)-
+                    COALESCE(SUM(CASE WHEN type='Expense' THEN amount ELSE 0 END),0) AS balance,
+                    COALESCE(SUM(CASE WHEN type='Income' THEN amount ELSE 0 END),0) AS total_income,
+                    COALESCE(SUM(CASE WHEN type='Expense' THEN amount ELSE 0 END),0) AS total_expenses
                     FROM transactions
                     WHERE user_id=?
                   
-                  ''',(session['user_id'],))
-        balance=c.fetchone()[0] or 0
+                  '''
+        params_totals=[session['user_id']]
+        if date_from:
+            query_totals+= ' AND date>=?'
+            params_totals.append(date_from)
+        if date_to:
+            query_totals+= ' AND date<=?'
+            params_totals.append(date_to)
+        c.execute(query_totals, tuple(params_totals))
+        row=c.fetchone()
+        total_income=row['total_income']
+        total_expenses=row['total_expenses']
+        balance=row['balance']
         conn.close()
         return render_template('dashboard.html', transactions=transactions, sort_by=sort_by, order=order, date_from=date_from, 
-                               date_to=date_to, balance=balance)
+                               date_to=date_to, balance=balance, total_income=total_income,total_expenses=total_expenses, current_balance=current_balance)
 
 
 @app.route('/add', methods=['GET','POST'])
