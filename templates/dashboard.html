@@ -9,6 +9,7 @@
 
 
 <a href="{{ url_for('add') }}" class="btn btn-success mb-3">Add Transaction</a>
+<a href="{{ url_for('import_transactions') }}" class="btn btn-success mb-3">Upload Transactions</a>
 <form method="get" class="d-flex align-items-end gap-2 mb-3" style="flex-wrap: wrap; max-width: 600px;">
       <div class="col-auto">
         <a href="{{ url_for('dashboard', preset='this_week')}}" class="btn btn-outline-secondary btn-sm">This Week</a>

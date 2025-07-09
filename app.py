@@ -5,6 +5,8 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 from datetime import date, timedelta
+import io
+import csv
 
 app=Flask(__name__)
 app.secret_key='a74c82b6c13d4218ac43e32e8d1d9f67'
@@ -218,7 +220,31 @@ def add():
           return redirect(url_for('dashboard'))
     return render_template('add.html', type=ttype, categories=categories)
 
+@app.route('/import', methods=['GET','POST'])
+def import_transactions():
+     if 'user_id' not in session:
+          return redirect (url_for('login'))
+     if request.method=='POST':
+          file=request.files['file']
+          if file.filename.endswith('.csv'):
+               stream=io.StringIO(file.stream.read().decode("UTF8"),newline=None)
+               csv_input=csv.reader(stream)
+               next(csv_input)
+               conn=get_db_conn()
+               c=conn.cursor()
+               for row in csv_input:
+                    if not row:
+                        continue 
+                    date, ttype, category, amount, description=row
+                    c.execute('''INSERT INTO transactions (user_id, date, type, category, amount, description) VALUES (?,?,?,?,?,?)''',
+                    (session ['user_id'], date, ttype, category, amount, description))
+               conn.commit()
+               conn.close()
+               return redirect(url_for('dashboard'))
+     return render_template('upload_tr.html')
 
+               
+     
 
 @app.route('/delete/<int:id>', methods=['POST'])
 def delete(id):
