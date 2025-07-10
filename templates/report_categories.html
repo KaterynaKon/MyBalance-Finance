@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Report by Categories{% endblock %}
+{% block content %}
+<h2>Report by Categories</h2>
+
+<table  class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Category</th>
+            <th>Total Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in report_data%}
+            <tr>
+                <td>{{ row['type'] }}</td>
+                <td>{{ row['category'] }}</td>
+                <td>{{ row['total_amount'] }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+
+
+</table>
+
+
+
+
+
+
+
+{% endblock %}

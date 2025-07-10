@@ -329,8 +329,28 @@ def update(id):
     conn.close()
     return render_template('edit.html', transaction=transaction)    
      
+@app.route('/reports')
+def reports():
+     if 'user_id' not in session:
+        return redirect(url_for('login'))
+     return render_template('reports.html')  
 
-
+@app.route('/reports/categories') 
+def report_categories():
+     if 'user_id' not in session:
+        return redirect(url_for('login'))
+     conn=get_db_conn()
+     c=conn.cursor()
+     c.execute('''
+                SELECT category, type, SUM(amount) AS total_amount
+                FROM transactions
+                WHERE user_id=?
+                GROUP BY category, type
+                ORDER BY type, total_amount DESC
+               ''', (session['user_id'],))
+     report_data=c.fetchall()
+     conn.close()
+     return render_template('report_categories.html', report_data=report_data)  
 
 @app.route('/logout')
 def logout():
