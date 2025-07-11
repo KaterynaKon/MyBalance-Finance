@@ -339,18 +339,51 @@ def reports():
 def report_categories():
      if 'user_id' not in session:
         return redirect(url_for('login'))
-     conn=get_db_conn()
-     c=conn.cursor()
-     c.execute('''
-                SELECT category, type, SUM(amount) AS total_amount
+     date_from=request.args.get('from')
+     date_to=request.args.get('to')
+
+     preset=request.args.get('preset')
+     today=date.today()
+     if preset=='this_week':
+             
+             start_of_week=today-timedelta(days=today.weekday())
+             date_from=start_of_week.isoformat()
+             date_to=today.isoformat()
+        
+     elif preset=='last_7_days':
+             date_from=(today-timedelta(days=6)).isoformat()
+             date_to=today.isoformat()
+        
+     elif preset=='this_month':
+             date_from=(today.replace(day=1)).isoformat()
+             date_to=today.isoformat()
+        
+     elif preset=='last_30_days':
+             date_from=(today-timedelta(days=29)).isoformat()
+             date_to=today.isoformat()
+     query='''
+                SELECT date, category, type, SUM(amount) AS total_amount
                 FROM transactions
                 WHERE user_id=?
-                GROUP BY category, type
-                ORDER BY type, total_amount DESC
-               ''', (session['user_id'],))
+                
+            '''
+    
+     params=[session['user_id']]
+
+     if date_from:
+             query+=" AND date>=?"
+             params.append(date_from)
+     if date_to:
+             query+=" AND date<=?"
+             params.append(date_to)
+    
+     query+=" GROUP BY category, type ORDER BY date, type, total_amount DESC"
+     conn=get_db_conn()
+     c=conn.cursor()
+     c.execute(query, tuple(params))
      report_data=c.fetchall()
      conn.close()
-     return render_template('report_categories.html', report_data=report_data)  
+     return render_template('report_categories.html', report_data=report_data, date_from=date_from, date_to=date_to)  
 
 @app.route('/logout')
 def logout():
