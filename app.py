@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, session
+from flask import Flask, render_template, redirect, url_for, request, session, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 from datetime import datetime
@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from datetime import date, timedelta
 import io
 import csv
+import pandas as pd
 
 app=Flask(__name__)
 app.secret_key='a74c82b6c13d4218ac43e32e8d1d9f67'
@@ -242,6 +243,37 @@ def import_transactions():
                conn.close()
                return redirect(url_for('dashboard'))
      return render_template('upload_tr.html')
+@app.route('/export/<filetype>')
+def export_transactions(filetype):
+     if 'user_id' not in session:
+          return redirect(url_for('login'))
+     conn=get_db_conn()
+     df=pd.read_sql_query('SELECT * FROM transactions WHERE user_id=?', conn, params=(session['user_id'],))
+     conn.close()
+     
+     if filetype=='csv':
+          output=io.StringIO()
+          df.to_csv(output,index=False)
+          output.seek(0)
+          return send_file(
+               io.BytesIO(output.getvalue().encode('utf-8')),
+               mimetype='text/csv',
+               as_attachment=True,
+               download_name='transactions.csv'
+          )
+     elif filetype=='excel':
+        output=io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+          df.to_excel(writer, index=False, sheet_name='Transactions')
+        output.seek(0)
+        return send_file(
+               output,
+               mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+               as_attachment=True,
+               download_name='transactions.xlsx'
+          )
+     else:
+        return 'Invalid file type',400 
 
                
      
