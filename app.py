@@ -243,14 +243,35 @@ def import_transactions():
                conn.close()
                return redirect(url_for('dashboard'))
      return render_template('upload_tr.html')
+
 @app.route('/export/<filetype>')
 def export_transactions(filetype):
      if 'user_id' not in session:
           return redirect(url_for('login'))
+     start_date=request.args.get('start_date') or None
+     end_date=request.args.get('end_date') or None
+
      conn=get_db_conn()
-     df=pd.read_sql_query('SELECT * FROM transactions WHERE user_id=?', conn, params=(session['user_id'],))
+     sql='SELECT * FROM transactions WHERE user_id=?'
+     params=[session['user_id']]
+     if start_date:
+        sql+=' AND date>=?'
+        params.append(start_date)
+     if end_date:
+        sql+=' AND date<=?'
+        params.append(end_date)
+     print(sql, params)
+     df=pd.read_sql_query(sql, conn, params=params)
      conn.close()
      
+     if start_date and end_date:
+          download_name=f"transactions_{start_date}_to_{end_date}"
+     elif start_date:
+          download_name=f"transactions_from_{start_date}"
+     elif end_date:
+          download_name=f"transactions_to_{end_date}"
+     else:
+          download_name=f"transactions_all"
      if filetype=='csv':
           output=io.StringIO()
           df.to_csv(output,index=False)
@@ -259,7 +280,7 @@ def export_transactions(filetype):
                io.BytesIO(output.getvalue().encode('utf-8')),
                mimetype='text/csv',
                as_attachment=True,
-               download_name='transactions.csv'
+               download_name=download_name+'.csv'
           )
      elif filetype=='excel':
         output=io.BytesIO()
@@ -270,7 +291,7 @@ def export_transactions(filetype):
                output,
                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                as_attachment=True,
-               download_name='transactions.xlsx'
+               download_name=download_name+'.xlsx'
           )
      else:
         return 'Invalid file type',400 
