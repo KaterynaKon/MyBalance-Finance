@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Add Transaction{% endblock %}
+{% block content %}
+<h2>Add Transaction (from Attachment)</h2>
+
+<div class="row">
+    <!-- Image Preview -->
+    <div class="col-md-6 mb-4">
+        <label>Receipt Image:</label>
+        <img src="{{ url_for('static', filename='uploads/' + filename) }}" 
+             alt="Receipt" class="img-fluid rounded shadow">
+    </div>
+
+    <!-- Form -->
+    <div class="col-md-6">
+        <form method="post">
+            <input type="hidden" name="filename" value="{{ filename }}">
+
+            <div class="mb-3">
+                <label>Date</label>
+                <input type="date" name="date" class="form-control" required 
+                       value="{{ date or '' }}" min="2024-01-01" max="2026-01-01">
+            </div>
+
+            <input type="hidden" name="type" value="{{ type or 'Expense' }}">
+
+            <div class="mb-3">
+                <label>Category</label>
+                <select name="category" class="form-control" required>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label>Amount</label>
+                <input type="number" step="0.01" name="amount" class="form-control" required value="{{ amount }}">
+            </div>
+
+            <div class="mb-3">
+                <label>Description</label>
+                <input type="text" name="description" class="form-control" value="{{ description }}">
+            </div>
+
+            <button type="submit" class="btn btn-success">Add Transaction</button>
+        </form>
+    </div>
+</div>
+
+<!-- Optional: Show raw text from OCR -->
+{% if receipt_text %}
+<div class="mt-4">
+    <h5>Extracted Text (debug view):</h5>
+    <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px;">{{ receipt_text }}</pre>
+</div>
+{% endif %}
+
+
+
+
+
+
+{% endblock %}

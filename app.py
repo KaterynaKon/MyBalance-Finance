@@ -8,6 +8,8 @@ from datetime import date, timedelta
 import io
 import csv
 import pandas as pd
+import re
+import pytesseract
 
 app=Flask(__name__)
 app.secret_key='a74c82b6c13d4218ac43e32e8d1d9f67'
@@ -198,20 +200,115 @@ def add():
                         'Entertainment','Clothing','Travel','Insurance', 'Debt payments', 'Other']
    
     categories=income_categories if ttype=='Income' else expense_categories
+    action = None 
     if request.method=='POST':
+       
+          
+          action=request.form.get('action')
+       
+
+          if action=="manual":
+               date=request.form['date']
+               category=request.form['category']
+               amount=request.form['amount']
+               description=request.form['description']
+               attachment_file=request.files.get('attachment')
+               
+               filename=None
+               if attachment_file and allowed_file(attachment_file.filename):
+                    filename=secure_filename(attachment_file.filename)
+                    filepath=os.path.join(app.config['UPLOAD_FOLDER'],filename)
+                    attachment_file.save(filepath)
+                    
+               if not description.strip():
+                    error='Description cannot be empty'
+                    return render_template('add.html', error=error, date=date,type=ttype, category=category, amount=amount, description=description, categories=categories)
+               
+               conn=get_db_conn()
+               c=conn.cursor()
+               c.execute('''INSERT INTO transactions (user_id, date, type, category, amount, description, attachment) VALUES (?,?,?,?,?,?,?)''',
+                    (session ['user_id'], date, ttype, category, amount, description, filename))
+               conn.commit()
+               conn.close()
+               return redirect(url_for('dashboard'))
+          
+          elif action=="from_attachment":
+               print("✅ action from_attachment")
+               attachment_file=request.files.get('attachment')
+               if attachment_file and allowed_file(attachment_file.filename):
+                    filename=secure_filename(attachment_file.filename)
+                    filepath=os.path.join(app.config['UPLOAD_FOLDER'],filename)
+                    attachment_file.save(filepath)
+                    return redirect(url_for('add_from_attachment',filename=filename))
+               else:
+                    error='Please upload a valid image file.'
+                    return render_template(
+                         'add.html',
+                         error=error,
+                         type=ttype,
+                         categories=categories)
+
+               
+               
+               
+               
+        
+               
+            
+       
+    return render_template('add.html', type=ttype, categories=categories)
+
+
+@app.route('/add/from_attachment',methods=['GET','POST'] )
+def add_from_attachment():
+     if 'user_id' not in session:
+          return redirect (url_for('login'))
+     
+     filename=request.args.get('filename') if request.method=='GET' else request.form.get('filename')
+     filepath=os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+     if not os.path.exists(filepath):
+          return "File not found",404
+     text=pytesseract.image_to_string(filepath)
+
+     description=amount=category=''
+     ttype = 'Expense' 
+     if "SuperValue" in text or "Ballybunion - Cahill" in text:
+                    description="SuperValue"
+                    category="Food"
+                    ttype='Expense'
+     match=re.search(r'Total.*?(\d+\.\d{2})+',text)
+
+     date_match = re.search(r'(\d{1,2}[-/]\d{1,2}[-/]\d{4})', text)
+
+     if date_match:
+          date = date_match.group(1)  
+          try:
+               dt = datetime.strptime(date, '%d/%m/%Y')  # Якщо слеші
+          except ValueError:
+               try:
+                    dt = datetime.strptime(date, '%d-%m-%Y')  # Якщо дефіси
+               except ValueError:
+                    dt = None
+          if dt:
+               date = dt.strftime('%Y-%m-%d')
+     else:
+          date = None
+     if match:
+          amount=match.group(1)
+     
+     income_categories=['Salary','Freelance','Business','Rental income','Dividends',
+                 'Interest','Gifts','Pension','Scholarship','Government benefits',
+                   'Investment income', 'Tax refund', 'Lottery or prize','Other']
+     expense_categories=['Food','Transport','Utilities','Rent','Healthcare','Education',
+                        'Entertainment','Clothing','Travel','Insurance', 'Debt payments', 'Other']
+     categories=income_categories if ttype=='Income' else expense_categories
+     
+     if request.method=='POST':
           date=request.form['date']
           category=request.form['category']
           amount=request.form['amount']
           description=request.form['description']
-          attachment_file=request.files.get('attachment')
-          filename=None
-          if attachment_file and allowed_file(attachment_file.filename):
-               filename=secure_filename(attachment_file.filename)
-               attachment_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-          if not description.strip():
-               error='Description cannot be empty'
-               return render_template('add.html', error=error, date=date,type=ttype, category=category, amount=amount, description=description, categories=categories)
-
           conn=get_db_conn()
           c=conn.cursor()
           c.execute('''INSERT INTO transactions (user_id, date, type, category, amount, description, attachment) VALUES (?,?,?,?,?,?,?)''',
@@ -219,7 +316,21 @@ def add():
           conn.commit()
           conn.close()
           return redirect(url_for('dashboard'))
-    return render_template('add.html', type=ttype, categories=categories)
+     return render_template(
+                         'add_from_attachment.html',
+                         type=ttype,
+                         date=date,
+                         category=category,
+                         amount=amount,
+                         description=description,
+                         categories=categories,
+                         filename=filename
+                         )
+     
+
+
+
+
 
 @app.route('/import', methods=['GET','POST'])
 def import_transactions():

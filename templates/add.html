@@ -16,7 +16,7 @@
 
 
 
-<form method="post" enctype="multipart/form-data">
+<form method="post" action="{{ url_for('add') }}" enctype="multipart/form-data">
     <div class="mb-3">
         <label>Date</label>
         <input type="date" name="date" class="form-control" required value="{{date or ''}}" min="2024-01-01" max="2026-01-01">
@@ -48,7 +48,9 @@
         <label>Attachment (optional)</label>
         <input type="file" name="attachment" class="form-control" >
     </div>
+    
+    <button type="submit" name="action" value="manual" class="btn btn-primary">Add</button>
+    <button type="submit" name="action" value="from_attachment" class="btn btn-primary">Add from Attachment</button>
 
-    <button type="submit" class="btn btn-primary">Add</button>
 </form>
 {% endblock %}
