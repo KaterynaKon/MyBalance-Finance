@@ -10,6 +10,7 @@ import csv
 import pandas as pd
 import re
 import pytesseract
+from functools import wraps
 
 app=Flask(__name__)
 app.secret_key='a74c82b6c13d4218ac43e32e8d1d9f67'
@@ -52,6 +53,19 @@ def init_db():
 
 def allowed_file(filename):
      return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
+
+def user_id_check(f):
+     @wraps(f)
+     def decorated_function(*args,**kwargs):
+          if 'user_id' not in session:
+               return redirect(url_for('login'))
+          return f(*args, **kwargs)
+     return decorated_function
+
+     
+     
+     
+#main
 init_db()
 
     #--Routes--
@@ -96,10 +110,8 @@ def login():
         return render_template('login.html')
    
 @app.route('/dashboard')
-def dashboard():
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
-        
+@user_id_check
+def dashboard():       
         sort_by=request.args.get('sort_by','date')
         order=request.args.get('order','desc')
 
@@ -188,10 +200,10 @@ def dashboard():
 
 
 @app.route('/add', methods=['GET','POST'])
-def add():
-    if 'user_id' not in session:
-          return redirect(url_for('login'))
+@user_id_check
 
+def add():
+    
     ttype=request.values.get('type','Income') 
     income_categories=['Salary','Freelance','Business','Rental income','Dividends',
                  'Interest','Gifts','Pension','Scholarship','Government benefits',
@@ -260,10 +272,8 @@ def add():
 
 
 @app.route('/add/from_attachment',methods=['GET','POST'] )
+@user_id_check
 def add_from_attachment():
-     if 'user_id' not in session:
-          return redirect (url_for('login'))
-     
      filename=request.args.get('filename') if request.method=='GET' else request.form.get('filename')
      filepath=os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
@@ -284,10 +294,10 @@ def add_from_attachment():
      if date_match:
           date = date_match.group(1)  
           try:
-               dt = datetime.strptime(date, '%d/%m/%Y')  # Якщо слеші
+               dt = datetime.strptime(date, '%d/%m/%Y')  
           except ValueError:
                try:
-                    dt = datetime.strptime(date, '%d-%m-%Y')  # Якщо дефіси
+                    dt = datetime.strptime(date, '%d-%m-%Y') 
                except ValueError:
                     dt = None
           if dt:
@@ -333,9 +343,9 @@ def add_from_attachment():
 
 
 @app.route('/import', methods=['GET','POST'])
+@user_id_check
 def import_transactions():
-     if 'user_id' not in session:
-          return redirect (url_for('login'))
+
      if request.method=='POST':
           file=request.files['file']
           if file.filename.endswith('.csv'):
@@ -356,9 +366,9 @@ def import_transactions():
      return render_template('upload_tr.html')
 
 @app.route('/export/<filetype>')
+@user_id_check
 def export_transactions(filetype):
-     if 'user_id' not in session:
-          return redirect(url_for('login'))
+
      start_date=request.args.get('start_date') or None
      end_date=request.args.get('end_date') or None
 
@@ -411,9 +421,9 @@ def export_transactions(filetype):
      
 
 @app.route('/delete/<int:id>', methods=['POST'])
+@user_id_check
 def delete(id):
-    if 'user_id' not in session:
-          return redirect(url_for('login'))
+
 
     conn=get_db_conn()
     c=conn.cursor()
@@ -437,9 +447,9 @@ def confirm_delete(id):
     return render_template('confirm_delete.html', id=id, target=target,form_action=form_action)
 
 @app.route('/delete_attachment/<int:id>', methods=['POST'])
+@user_id_check
 def delete_attachment(id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    
 
     conn = get_db_conn()
     c = conn.cursor()
@@ -457,9 +467,9 @@ def delete_attachment(id):
 
 
 @app.route('/amend/<int:id>', methods=['GET','POST'])
+@user_id_check
 def update(id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+
     conn=get_db_conn()
     c=conn.cursor()
 
@@ -494,15 +504,15 @@ def update(id):
     return render_template('edit.html', transaction=transaction)    
      
 @app.route('/reports')
+@user_id_check
 def reports():
-     if 'user_id' not in session:
-        return redirect(url_for('login'))
+  
      return render_template('reports.html')  
 
 @app.route('/reports/categories') 
+@user_id_check
 def report_categories():
-     if 'user_id' not in session:
-        return redirect(url_for('login'))
+
      date_from=request.args.get('from')
      date_to=request.args.get('to')
 
