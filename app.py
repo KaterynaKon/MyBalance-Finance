@@ -62,7 +62,7 @@ def user_id_check(f):
           return f(*args, **kwargs)
      return decorated_function
 
-def execute_query(query,params=(),fetch=False):
+def execute_query(query,params=(),fetch=False, fetchone=False):
      with get_db_conn as conn:
           c=conn.cursor()
           c.execute(query,params)
