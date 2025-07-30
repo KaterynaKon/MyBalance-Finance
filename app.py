@@ -62,7 +62,15 @@ def user_id_check(f):
           return f(*args, **kwargs)
      return decorated_function
 
-     
+def execute_query(query,params=(),fetch=False):
+     with get_db_conn as conn:
+          c=conn.cursor()
+          c.execute(query,params)
+          if fetchone:
+               return c.fetchone()
+          if fetch:
+               return c.fetchall()
+          conn.commit()  
      
      
 #main
@@ -81,12 +89,7 @@ def register():
             username=request.form['username']
             email=request.form['email']
             password=generate_password_hash(request.form['password'])
-
-            conn=get_db_conn()
-            c=conn.cursor()
-            c.execute('INSERT INTO users (username, email, password) VALUES(?,?,?)',(username, email, password))
-            conn.commit()
-            conn.close()
+            execute_query('INSERT INTO users (username, email, password) VALUES(?,?,?)',(username, email, password))
             return redirect(url_for('login'))
         return render_template('register.html')
     
@@ -95,15 +98,9 @@ def login():
         if request.method=='POST':
             username=request.form['username']
             password=request.form['password']
-
-            conn=get_db_conn()
-            c=conn.cursor()
-            c.execute('SELECT id, password FROM users WHERE username=?',(username,))
-            user=c.fetchone()
-            conn.close()
-                      
+            user=execute_query('SELECT id, password FROM users WHERE username=?',(username,), fetchone=True)
             if user and check_password_hash(user[1],password):
-                session['user_id'] = user[0]
+                session['user_id'] = user['id']
                 return redirect(url_for('dashboard'))
             else:
                 return "Login failed"
@@ -235,13 +232,8 @@ def add():
                if not description.strip():
                     error='Description cannot be empty'
                     return render_template('add.html', error=error, date=date,type=ttype, category=category, amount=amount, description=description, categories=categories)
-               
-               conn=get_db_conn()
-               c=conn.cursor()
-               c.execute('''INSERT INTO transactions (user_id, date, type, category, amount, description, attachment) VALUES (?,?,?,?,?,?,?)''',
+               execute_query('''INSERT INTO transactions (user_id, date, type, category, amount, description, attachment) VALUES (?,?,?,?,?,?,?)''',
                     (session ['user_id'], date, ttype, category, amount, description, filename))
-               conn.commit()
-               conn.close()
                return redirect(url_for('dashboard'))
           
           elif action=="from_attachment":
@@ -319,12 +311,8 @@ def add_from_attachment():
           category=request.form['category']
           amount=request.form['amount']
           description=request.form['description']
-          conn=get_db_conn()
-          c=conn.cursor()
-          c.execute('''INSERT INTO transactions (user_id, date, type, category, amount, description, attachment) VALUES (?,?,?,?,?,?,?)''',
+          execute_query('''INSERT INTO transactions (user_id, date, type, category, amount, description, attachment) VALUES (?,?,?,?,?,?,?)''',
                     (session ['user_id'], date, ttype, category, amount, description, filename))
-          conn.commit()
-          conn.close()
           return redirect(url_for('dashboard'))
      return render_template(
                          'add_from_attachment.html',
