@@ -49,6 +49,12 @@ A smart personal finance web application built with Flask that helps users track
 
 ---
 
+## 📸 Application Preview
+### Dashboard
+![dashboard](img/dashboard.png)
+
+---
+
 ## 🛠 Tech Stack
 
 - **Backend:** Flask (Python)  
